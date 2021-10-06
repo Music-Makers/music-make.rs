@@ -1,0 +1,72 @@
+#+TITLE: Utils: Things we use everywhere (or plan to, at some point)
+
+* ~mm.rs/[call-]with-file-buffer~
+
+#+begin_src emacs-lisp
+(defun mm.rs/call-with-file-buffer (filename proc)
+  (let* ((visiting (find-buffer-visiting filename))
+         (work-buffer (or visiting
+                          (and (file-exists-p filename)
+                               (find-file-noselect filename)))))
+    (if (not work-buffer)
+        (warn "Cannot find file %s from %s" filename default-directory)
+      (unwind-protect
+          (with-current-buffer work-buffer (funcall proc work-buffer))
+        (unless visiting (kill-buffer work-buffer))))))
+
+(cl-defmacro mm.rs/with-file-buffer (filename &body body)
+  (let ((ig (gensym)))
+    `(mm.rs/call-with-file-buffer
+      ,filename (lambda (,ig) (declare (ignore ,ig)),@body))))
+#+end_src
+
+* ~info~ and ~options~ for buffer
+
+#+begin_src emacs-lisp
+(defun mm.rs/org-export-get-buffer-info (&optional type)
+  (org-combine-plists
+   (org-export--get-export-attributes type)
+   (org-export--get-buffer-attributes)))
+
+(defun mm.rs/org-export-get-buffer-options (&optional type)
+  (org-combine-plists
+		(org-export--get-global-options type)
+        (org-export--get-inbuffer-options type)))
+
+(defun mm.rs/info (&optional type)
+  (org-combine-plists
+   (mm.rs/org-export-get-buffer-info type)
+   (mm.rs/org-export-get-buffer-options type)))
+#+end_src
+
+* ~mm.rs/org-file-date~ (filename)
+
+#+begin_src emacs-lisp
+(defun mm.rs/org-file-date (filename)
+  (mm.rs/with-file-buffer
+   filename
+   (let* ((info (mm.rs/info))
+          (ts (org-export-get-date info))
+          (file (plist-get info :input-file)))
+     (if ts (org-timestamp-to-time ts)
+       (file-attribute-modification-time
+	(file-attributes file))))))
+#+end_src
+* etc
+
+#+begin_src emacs-lisp :tangle "utils.el"
+
+(defun mm.rs/org-html-standalone-image-p (p &optional info)
+  (org-html-standalone-image-p p info))
+
+(defun mm.rs/org-html-image (element)
+  (let* ((link (if (eql (org-element-type element) 'link) element
+                 (org-element-map element 'link #'identity nil t)))
+         (p (if (eql (org-element-type element) 'paragraph) element
+              (org-element-property :parent link))))
+    (org-html--format-image
+     (org-element-property :path link)
+     (org-export-read-attribute :attr_html p)
+     '(:html-doctype "html"))))
+
+#+end_src

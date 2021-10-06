@@ -1,0 +1,8 @@
+#+TITLE: Synopsis Test Playground
+
+* Featured :mmrs:synopsis:slider:
+
+  - [[file:synopsis.org]]
+#  - [[file:org-export.org]]
+#  - [[file:article.org]]
+#  - [[file:website.org]]

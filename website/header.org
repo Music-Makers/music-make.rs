@@ -1,0 +1,76 @@
+#+TITLE: Header: All pages should have one
+
+#+begin_src emacs-lisp :tangle header.el
+(require 'f)
+
+(defconst mm.rs/org-html-header-format-string
+  (f-read-text "header-format-string.html" 'utf-8))
+
+(cl-defun <mm.rs:header/> ()
+  (format mm.rs/org-html-header-format-string))
+
+(defun mm.rs/org-html-header (section contents info)
+  (<mm.rs:header/>))
+
+(defun mm.rs/org-html-header-section (section contents info)
+  (concat (mm.rs/org-html-header section contents info) "\n"
+          (org-html-section section contents info)))
+
+(defun mm.rs/org-export-header-section-p (el info)
+  (and (eq (org-element-type el) 'section)
+       (not (org-export-get-parent-headline el))))
+
+(add-to-list
+ 'mm.rs/org-html-translate-section-alist
+ '(mm.rs/org-export-header-section-p . mm.rs/org-html-header-section))
+
+#+end_src
+
+* /File/ ~header-format-string.html~
+
+#+begin_src html :tangle header-format-string.html
+<!--HEADER-->
+<header id="header" style="background-color: #fff;" data-uk-sticky="show-on-up: true; animation: uk-animation-fade; media: @l">
+  <div class="uk-container">
+	<nav id="navbar" data-uk-navbar="mode: click;">
+	  <div class="uk-navbar-left nav-overlay uk-visible@m">
+		<ul class="uk-navbar-nav">
+		  <li>
+			<a href="#" title="Subscribe">Subscribe</a>
+		  </li>
+		  <li>
+			<a href="#" title="Sign Up">Sign Up</a>
+		  </li>
+		</ul>
+	  </div>
+	  <div class="uk-navbar-center nav-overlay">
+          <a class="uk-navbar-item uk-logo" href="/" title="Music-Make.rs">
+          <img src="/img/music.png" alt="'" style="height:1em">
+          Music-Make.rs
+          <img src="/img/music.png" alt="'" style="height:1em">
+        </a>
+	  </div>
+	  <div class="uk-navbar-right nav-overlay">
+		<a class="uk-navbar-toggle uk-visible@m" data-uk-search-icon data-uk-toggle="target: .nav-overlay; animation: uk-animation-fade" href="#"></a>
+		<div class="uk-navbar-item">
+		  <a class="uk-visible@s" style="margin-right: 4px"
+             href="https://www.facebook.com/the.dreamers.of.the.dreams" data-uk-icon="facebook"></a>
+		  <a class="uk-visible@s" style="margin-right: 4px" href="#" data-uk-icon="twitter"></a>
+		  <a class="uk-visible@s" style="margin-right: 4px" href="#" data-uk-icon="instagram"></a>
+		  <a class="uk-navbar-toggle uk-hidden@m" data-uk-toggle data-uk-navbar-toggle-icon href="#offcanvas-nav"></a>
+		</div>
+
+	  </div>
+	  <div class="nav-overlay uk-navbar-left uk-flex-1" hidden>
+		<div class="uk-navbar-item uk-width-expand">
+		  <form class="uk-search uk-search-navbar uk-width-1-1">
+			<input class="uk-search-input" type="search" placeholder="Search...">
+		  </form>
+		</div>
+		<a class="uk-navbar-toggle" data-uk-close data-uk-toggle="target: .nav-overlay; animation: uk-animation-fade" href="#"></a>
+	  </div>
+	</nav>
+  </div>
+</header>
+<!--/HEADER-->
+#+end_src

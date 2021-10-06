@@ -1,0 +1,13 @@
+#+TITLE: Comments, the first engine needed.
+
+Comments on articles and user interaction is important to create and manage a
+community! After a brief google'ing I have chosen https://remark42.com.
+
+
+* The server
+
+We run *Guix* live because it just works.
+
+#+begin_src shell
+
+#+end_src

@@ -1,0 +1,479 @@
+#+TITLE: Synopsis for sliders
+#+KEYWORDS: dev
+#+KEYWORDS: music-make.rs slider
+#+DATE: [2021-09-21 Tue]
+#+PROPERTY: header-args    :eval no
+
+
+#+attr_org: :width 200
+#+ATTR_HTML: :alt This should appear when the image does not
+#+ATTR_HTML: :title This is a guitar :width 200px
+#+ATTR_HTML: :style float:left;
+[[file:img/music.png]]
+
+This is how we develop and run the slider as well as get a synopsis from a file.
+
+* Introduction
+:PROPERTIES:
+:ID:       e995ef91-edb6-4a48-a991-63a499309bfd
+:END:
+
+A [[https://getuikit.com/docs/slider][slider]] list that contains a synopsis for an article is a great idea.
+
+An item has 6 components. We can get all the values from a file.
+
+ - Title :: We use the ~#+TITLE:~ keyword
+ - Author(s) :: We use the ~#+AUTHOR:~ keyword
+ - Date :: The ~#+DATE:~ option
+ - Image :: The first inline image
+ - Keywords :: ~#+KEYWORDS:~ split-string'ed
+ - Abstract :: The paragraphs before the first heading.
+
+Wouldn't it be nice to create it from org syntax?
+
+   #+begin_src org :tangle synopsis-test.org
+,#+TITLE: Synopsis Test Playground
+
+,* Featured :mmrs:synopsis:slider:
+
+  - [[file:synopsis.org]]
+#  - [[file:org-export.org]]
+#  - [[file:article.org]]
+#  - [[file:website.org]]
+   #+end_src
+
+
+We can and we do! First create a simple export backend that does what we want.
+
+#+begin_src emacs-lisp :eval yes
+(defvar test-html-slider
+  (org-export-create-backend
+   :parent 'html
+   :transcoders
+   `((template . ,(lambda (contents info)
+                    (format "<bold> Running that gives us this: </bold> %s"
+                            (or contents ""))))
+     (headline . mm.rs/org-html-slider)
+     )))
+#+end_src
+
+#+RESULTS:
+: test-html-slider
+
+Now open that buffer and export it.
+
+#+begin_src emacs-lisp :exports both :eval yes :results html
+(mm.rs/with-file-buffer "synopsis-test.org"
+ (org-export-as test-html-slider nil nil nil '(:with-toc nil :noeval "yes")))
+
+#+end_src
+
+
+** Is an element a slider?
+
+#+begin_src emacs-lisp :noweb-ref slider-p
+(defun mm.rs/org-element-synopsis-slider-p (el)
+ (and (eq (org-element-type el) 'headline)
+      (let ((tgs (org-element-property :tags el)))
+        (and (member "mmrs" tgs) (member "slider" tgs) (member "synopsis" tgs)))
+      el))
+
+
+#+end_src
+
+** Then make a ~mm.rs/org-html-slider~ from that element
+
+#+begin_src emacs-lisp :noweb-ref org-html-slider
+(defun mm.rs/org-html-slider (headline contents info)
+  (let ((paths (org-element-map headline 'link
+                 (lambda (l) (org-element-property :path l)))))
+    (message "Trying slider for paths: %s" paths)
+    (apply #'<mm.rs:slider/>
+           (org-export-data (org-element-property :title headline) info)
+           (mapcar (lambda (path) (mm.rs/org-html-file-synopsis path info))
+                   paths))))
+#+end_src
+
+** And add it to the headline printer
+
+#+begin_src emacs-lisp :noweb-ref mmrs-slider-headline
+(add-to-list 'mm.rs/org-html-headline-alist
+             '(mm.rs/org-element-synopsis-slider-p . mm.rs/org-html-slider))
+#+end_src
+
+
+* /Function/ ~(mm.rs/org-file-synopsis-plist ...)~
+
+This one returns enough for us to make a working HTML from it.
+
+#+begin_src emacs-lisp :noweb-ref synopsis-plist-docstring
+"Return a plist for a synopsis of this FILENAME
+
+FILENAME is an orgmode file.
+
+The return value is a plist with the following keys.
+
+ - :input-file :: The full name and path the FILENAME points towards
+ - :title :: A plain text string of the #+TITLE
+ - :url :: a relative (to the current buffer) path to the exported file
+ - :author :: A string for the author of this file
+ - :date :: An emacs time for #+DATE:
+            or if non-existant thelast modification time
+ - :img  :: A plist of (:path <path of image> <attr_htmls> ...)
+ - :abstract :: a list of the opening paragraphs
+ - :keywords :: a list of keywords for meta things
+"
+#+end_src
+
+The abstract is the opening paragraphs, no images allowed.
+
+#+begin_src emacs-lisp :noweb-ref synopsis-abstract
+(defun mm.rs/org-element--synopsis-abstract (data info)
+  "The paragraphs of the first section"
+  (let ((info (org-export-get-environment)))
+           (remove nil
+            (org-element-map
+               data 'section
+              (lambda (sec)
+                (org-element-map
+                    sec 'paragraph
+                  (lambda (p)
+                    (unless (org-html-standalone-image-p p info) p))))
+              nil t))))
+#+end_src
+
+** The one that does it: ~(mm.rs/org-file-synopsis-plist)~
+:PROPERTIES:
+:CUSTOM_ID: fileSynopsisPlist
+:END:
+
+#+begin_src emacs-lisp :noweb-ref element--file-synopsis-plist
+(defun mm.rs/org-element--synopsis-plist
+    (contents info &optional root-dir)
+  (let* ((file (plist-get info :input-file))
+         (ts (org-export-get-date info))
+         (root-dir (or root-dir
+                       (file-name-directory file)))
+
+         (title (org-html-plain-text
+                 (org-element-interpret-data (plist-get info :title)) info))
+         (keys (plist-get info :keywords))
+         (date (if ts (org-timestamp-to-time (car ts))
+                 (file-attribute-modification-time
+	          (file-attributes file))))
+         (author (plist-get info :author))
+         (url (concat (file-relative-name
+                       (file-name-sans-extension filename)
+                       root-dir
+                       ) ".html") )
+         (data (org-element-parse-buffer))
+         (abstract (mm.rs/org-element--synopsis-abstract data info))
+         (imgp (org-element-map data 'paragraph
+                 (lambda (e) (and (org-html-standalone-image-p e info) e)) info t))
+         (img (car (org-element-contents imgp)))
+         (path (and img (org-element-property :path img)))
+         (img-path (and path (file-relative-name path root-dir)))
+         (img-attr (org-export-read-attribute :attr_html imgp)))
+    (message "URL for synopsis: %s" url)
+    (list :input-file file :info keys
+          :title title :url url :author author :date date
+          :img (and path (append `(:path , img-path) img-attr))
+          :abstract abstract :keywords (and keys (split-string keys)))))
+
+(defvar mm.rs/%org-file-syn-plist%)
+
+(defun mm.rs/org-export-synopsis-template (contents info &optional root-dir)
+  (setq mm.rs/%org-file-syn-plist%
+        (mm.rs/org-element--synopsis-plist
+         contents info root-dir))
+  (with-output-to-string (princ mm.rs/%org-file-syn-plist%)))
+
+(defun mm.rs/org-file--synopsis-plist (filename &optional root-dir)
+  (let* ((mm.rs/%org-file-syn-plist% nil)
+       ;  (org-inhibit-startup t)
+         (back
+          (org-export-create-backend
+           :parent 'html
+           :transcoders
+           `((template . mm.rs/org-export-synopsis-template)))))
+ ;; Org provides many ways to execute code blocks. C-c C-c or C-c C-v e with
+ ;; the point on a code block calls the `org-babel-execute-src-block`
+ ;; function, which executes the code in the block, collects the results, and
+ ;; inserts them in the buffer.
+ ;;  -- https://orgmode.org/manual/Evaluating-Code-Blocks.html
+
+ ;; You see, (symbol-function SYMBOL) is a valid place expression. Which
+ ;; means you can bind it dynamically using cl-letf.
+ ;; -- https://endlessparentheses.com/understanding-letf-and-how-it-replaces-flet.html
+
+    (cl-letf (((symbol-function 'org-babel-execute-src-block)
+               (lambda (&optional ARG INFO PARAMS)
+                 ;(warn "Not executing for synopsis")
+                 "")))
+      (mm.rs/with-file-buffer
+       filename
+       (org-export-as back nil nil nil '(:with-toc nil :eval "no")))
+      mm.rs/%org-file-syn-plist%)))
+
+
+#+end_src
+
+
+#+begin_src emacs-lisp :noweb-ref synopsis-plist :noweb yes
+(defun mm.rs/org-file-synopsis-plist (filename)
+  <<synopsis-plist-docstring>>
+  (setq filename (file-truename filename))
+  (let* ((pub? (mm.rs/org-publish-needed-p filename))
+         (exist-plist (and (not pub?)
+                           (org-publish-cache-get-file-property
+                            filename :mm.rs-synopsis-plist))))
+    (or exist-plist
+        (org-publish-cache-set-file-property
+         filename :mm.rs-synopsis-plist
+         (mm.rs/org-file--synopsis-plist filename)))))
+#+end_src
+
+#+RESULTS:
+: mm\.rs/org-file-synopsis-plist
+
+
+
+* /Function/ ~mm.rs/org-html-file-synopsis~
+
+Take the plist and make an html element from it, retured as a string.
+
+#+begin_src emacs-lisp
+(cl-defun mm.rs/org-html-file-synopsis
+    (filename
+     info &key (default-img "<img src=\"https://picsum.photos/200\"/>"))
+  "calls <mm.rs:slider-item/> with the arguments coming from the
+     mm.rs/org-file-synopsis-plist function and converted to
+     HTML"
+  (unless info
+    (setq info (org-export-get-environment 'html)))
+  (let* ((plist (mm.rs/org-file-synopsis-plist filename))
+         (filename (plist-get plist :input-file))
+         (fdir (file-name-directory filename))
+         (exfile (or (plist-get info :input-file)
+                     buffer-file-name))
+         (exdir (file-name-directory exfile))
+         (title (plist-get plist :title))
+         (keywords (plist-get plist :keywords))
+         (author (plist-get plist :author))
+         (abstract (plist-get plist :abstract))
+         (url (plist-get plist :url))
+         (true-url (expand-file-name url fdir))
+         (rel-url (file-relative-name true-url exdir))
+         (date (plist-get plist :date))
+         (img (plist-get plist :img))
+         (img-path (and img (plist-get img :path)))
+         (true-img-path (and img (expand-file-name img-path fdir)))
+         (rel-img-path (and img (file-relative-name true-img-path exdir)))
+         (img-attrs (and img (plist-delete! img :path)))
+         (img ;default-img
+              (if img
+                   (org-html--format-image rel-img-path img-attrs info)
+                 default-img)
+              )
+
+         )
+
+     (<mm.rs:slider-item/>
+     :title (org-export-data title info)
+     :url rel-url
+     :abstract (apply #'concat (mapcar (lambda (p) (org-export-data p info)) abstract))
+     :author (org-export-data author info)
+     :img img
+     :date date
+     :keywords keywords)
+
+    ))
+
+#+end_src
+* HTML format strings and ~<mm.rs:slider>~ functions
+
+#+begin_src emacs-lisp :results html :eval yes :exports both
+(add-load-path! default-directory)
+(load "synopsis")
+
+(<mm.rs:slider/>
+ "Test Slider"
+ `(:title "First Item"
+   :img "<img src=\"../img/Piano1.jpg\" alt=\"Piano1.jpg\">"
+   :date ,(file-attribute-modification-time
+           (file-attributes buffer-file-name))
+   :keywords ("heh" "Tagme")
+   :abstract
+   "This is the Abstract of the first. It can also be a list of paragraphs")
+
+  "<li> Also any string is treated that way and exported as-is </li>")
+#+end_src
+
+
+** ~(<mm.rs/slider-item [args ..])~
+
+The items of a slider are taken from [[#fileSynopsisPlist][~(mm.rs/org-file-synopsis-plist)~]].
+
+There's a ~mm.rs/slider-item-format-string~ var that wraps an item.
+
+#+begin_src emacs-lisp :noweb-ref slider-item-docstring
+"The variable mm.rs/slider-item-format-string has N %s's
+  - img :: The <img> tag or something else in that location
+  - keywords :: any item placed before the link title
+  - url :: The url passed to the href= of the title
+  - title :: the string of the <h3> <a> title.
+  - date :: For Published On
+  - abstract :: the summary of this item
+"
+#+end_src
+
+#+begin_src emacs-lisp :noweb-ref slider-item :noweb yes
+(defconst mm.rs/slider-item-format-string
+"		  <li>
+			<div class=\"uk-card uk-card-default uk-card-body uk-card-small uk-flex uk-flex-middle uk-card-default uk-border-rounded\">
+			  <div class=\"uk-grid uk-grid-medium uk-flex uk-flex-middle\" data-uk-grid>
+				<div class=\"uk-width-1-3@s uk-width-2-5@m uk-height-1-1\">
+                  %s
+				</div>
+				<div class=\"uk-width-2-3@s uk-width-3-5@m\">
+                   %s
+				  <h3 class=\"uk-card-title uk-margin-small-top uk-margin-remove-bottom\">
+					<a class=\"uk-link-reset\" href=\"%s\">%s</a>
+				  </h3>
+				  <span class=\"uk-article-meta\">Published %s</span>
+				  <p class=\"uk-margin-small\">%s</p>
+				</div>
+			  </div>
+			</div>
+		  </li>
+")
+
+(cl-defun <mm.rs:slider-item/>
+    (&key title url author
+          (date '(24907 38903 178018 858000))
+          img abstract keywords
+          &allow-other-keys)
+
+  " <slider-item/> (&key title author date image abstract keywords)"
+  (when (stringp date) (setq date (parse-time-string date)))
+  (format mm.rs/slider-item-format-string
+          img
+          (<mm.rs:slider-item-keywords/> keywords) url title
+          (format-time-string mm.rs/slider-item-format-time-string date)
+          abstract))
+#+end_src
+
+*** Keywords
+
+#+begin_src emacs-lisp :noweb-ref slider-item-keywords
+(defconst mm.rs/slider-item-keyword-format-string
+  "<span class=\"uk-label uk-label-warning\" style=\"font-size: 0.75rem; margin-right:0.25em \">%s</span>"
+  "This takes one %s, the name of the keyword")
+
+(defun <mm.rs:slider-item-keywords/> (keys)
+  (unless (listp keys) (setq keys (list keys)))
+  (with-output-to-string
+    (dolist (k keys)
+      (princ (format mm.rs/slider-item-keyword-format-string k)))))
+#+end_src
+*** Date
+
+https://www.gnu.org/software/emacs/manual/html_node/elisp/Time-Parsing.html
+
+#+begin_src emacs-lisp :noweb-ref slider-item-format-time-string
+(defconst mm.rs/slider-item-format-time-string
+  "%a %b %d, %Y")
+#+end_src
+
+#+RESULTS:
+: mm\.rs/slider-item-format-time-string
+
+** ~(<mm.rs:slider/> title item ...)~
+
+#+begin_src emacs-lisp :noweb-ref slider
+(defun <mm.rs:slider/> (title &rest items)
+  (with-output-to-string
+    (princ (<mm.rs:slider> title))
+    (princ "\n")
+    (dolist (i items)
+      (princ (if (listp i)
+                 (apply #'<mm.rs:slider-item/> i)
+               i)))
+    (princ (</mm.rs:slider>))))
+
+#+end_src
+** ~(<mm.rs:slider> headline)~
+
+#+begin_src emacs-lisp :noweb-ref slider-open
+
+(defvar mm.rs/slider-open-tag-format-string "<!-- SLIDER -->
+<div class=\"uk-container\">
+  <h4 class=\"uk-heading-line uk-text-bold\"><span>%s</span></h4>
+  <div data-uk-slider=\"velocity: 5\">
+	<div class=\"uk-position-relative\">
+	  <div class=\"uk-slider-container\">
+		<ul class=\"uk-slider-items uk-child-width-1-2@m uk-grid uk-grid-medium news-slide\">
+")
+
+(defun <mm.rs:slider> (&optional headline)
+  (setq headline (or headline "Featured"))
+  (format mm.rs/slider-open-tag-format-string headline))
+#+end_src
+
+** ~</mm.rs:slider>
+
+#+begin_src emacs-lisp :noweb-ref slider-close
+(defvar mm.rs/slider-close-string
+"		</ul>
+	  </div>
+	  <div class=\"uk-hidden@l uk-light\">
+		<a class=\"uk-position-center-left uk-position-small\" href=\"#\" data-uk-slidenav-previous data-uk-slider-item=\"previous\"></a>
+		<a class=\"uk-position-center-right uk-position-small\" href=\"#\" data-uk-slidenav-next data-uk-slider-item=\"next\"></a>
+	  </div>
+	  <div class=\"uk-visible@l\">
+		<a class=\"uk-position-center-left-out uk-position-small\" href=\"#\" data-uk-slidenav-previous data-uk-slider-item=\"previous\"></a>
+		<a class=\"uk-position-center-right-out uk-position-small\" href=\"#\" data-uk-slidenav-next data-uk-slider-item=\"next\"></a>
+	  </div>
+	</div>
+	<ul class=\"uk-slider-nav uk-dotnav uk-flex-center uk-margin\"><li></li></ul>
+  </div>
+</div>
+<!-- /SLIDER -->
+")
+
+(defun </mm.rs:slider> () (format mm.rs/slider-close-string))
+#+end_src
+
+
+* /File/ ~synopsis.el~
+:PROPERTIES:
+:ID:       3cc2da60-c0ff-44cc-a5e2-e30bd8b356c6
+:END:
+
+#+begin_src emacs-lisp :noweb yes :tangle synopsis.el
+
+<<synopsis-abstract>>
+
+<<element--file-synopsis-plist>>
+
+<<synopsis-plist>>
+
+<<slider-p>>
+
+<<slider-plist>>
+
+<<slider-open>>
+
+<<slider-item-keywords>>
+
+<<slider-item-format-time-string>>
+
+<<slider-item>>
+
+<<slider-close>>
+
+<<slider>>
+
+<<org-html-slider>>
+#+end_src
+

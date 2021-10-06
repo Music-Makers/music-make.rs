@@ -1,0 +1,78 @@
+#+TITLE: Author: Publishing for tips
+
+One of the reasons behind this project is to enable virtual busking. Since
+authors could be buskers, and this one in particular certainly is, there is a
+hint towards that here in the development of items so related.
+
+* Author files
+
+* Author tag for Articles
+
+Simple usage.
+
+#+begin_src emacs-lisp :exports both :results html
+(<mm.rs:author/>
+	"<img src=\"https://unsplash.it/80/80/?random\" alt=\"\" class=\"uk-border-circle\">"
+ "Drew Crampsie" "drewc is like an author and stuff!"
+ "<li> This is an action that has no action </li>"
+ "<li> <a href=\"#\">This is an action that pretends </a> </li>")
+#+end_src
+
+#+begin_src html :tangle "author-tag-template.html"
+<!--AUTHOR-->
+<section class="uk-section uk-section-small">
+  <div id="author-wrap" class="uk-container uk-container-small">
+	<div class="uk-grid uk-grid-medium uk-flex uk-flex-middle" data-uk-grid>
+	  <div class="uk-width-auto">
+        %s
+	  </div>
+	  <div class="uk-width-expand">
+		<h4 class="uk-margin-remove uk-text-bold"> %s </h4>
+		<span class="uk-text-small uk-text-muted"> %s </span>
+	  </div>
+	  <div class="uk-width-auto">
+		<div class="uk-inline">
+		  <a href="#" class="uk-icon-button"
+			 data-uk-icon="icon:more-vertical"></a>
+		  <div data-uk-dropdown="mode:click; pos: bottom-right; boundary:#author-wrap">
+			<ul class="uk-nav uk-dropdown-nav">
+			  <li class="uk-nav-header">Actions</li>
+            %s
+			  <li><a href="#">Tip this author!</a></li>
+			  <li><a href="#">Rate this author</a></li>
+			  <li><a href="#">Follow this author</a></li>
+			  <li><a href="#">Bookmark</a></li>
+			  <li><a href="#">View more articles</a></li>
+			</ul>
+		  </div>
+		</div>
+	  </div>
+	</div>
+  </div>
+</section>
+<!--/AUTHOR-->
+#+end_src
+
+#+begin_src emacs-lisp
+(require 'f)
+
+(defconst mm.rs/author-tag-format-string
+  (f-read-text "author-tag-template.html")
+  "The format string for an author tag that has the following
+vars:
+ - img-tag:
+		<img src=\"https://unsplash.it/80/80/?random\"
+           alt=\"\" class=\"uk-border-circle\">
+ - name: the name inside a h4
+
+ - bio: The short \"about\" type biography
+
+ - li's: whatever <li> ... </li>'s that should appear in the
+ \"actions\" menu")
+
+(defun <mm.rs:author/> (img name bio &rest actions)
+  (setq actions (with-output-to-string (dolist (a actions) (princ a)(newline))))
+  (format mm.rs/author-tag-format-string img name bio actions))
+
+
+#+end_src

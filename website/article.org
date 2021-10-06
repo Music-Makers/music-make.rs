@@ -1,0 +1,13 @@
+#+TITLE: Article Publishing Online
+
+Our article publishing is based on the https://github.com/zzseba78/Kick-Off template for article.
+
+https://zzseba78.github.io/Kick-Off/article.html
+
+We use our own org mode export engine.
+
+* Introduction
+
+#+begin_src emacs-lisp
+
+#+end_src

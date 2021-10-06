@@ -1,0 +1,95 @@
+#+TITLE: Website Development, literally literate.
+#+MMRS: index
+
+The website is laid out using [[https://orgmode.org/worg/dev/org-export-reference.html][Org Mode]]. This is where such things are described,
+implemented, tangled and weaved.
+
+* Meta: ~#+MMRS: index~ becomes an index page.
+
+This file in which I'm writing this sentence is named ~index.org~ and acts as an
+index for the website development. It's also where the things that make a ~.org~
+file act as an index page are implemented in order to index itself metacircular
+like.
+
+#+begin_src emacs-lisp :results code :exports code :eval noexport
+(plist-get (org-export--get-inbuffer-options 'mm.rs/html) :mmrs)
+ ;=> ("index")
+#+end_src
+
+
+** ~mm.rs/org-html-index-template~
+
+If this page has "index" within its ~:mmrs~ keyword value then display it as
+such.
+
+#+begin_src emacs-lisp
+(defun mm.rs/org-element-index-template-p (contents info)
+  (message "Trying index-p %s on" (plist-get info :mmrs)
+           (plist-get info :input-file))
+  (member "index" (plist-get info :mmrs)))
+
+(defconst mm.rs/index-style-tag-string
+ (f-read-text (mm.rs/expand-file-name "website/index-style-tag.html") 'utf-8))
+
+(defun mm.rs/org-html-index-template (contents info)
+  (let ((hhe (concat (plist-get info :html-head-extra)
+                     mm.rs/index-style-tag-string)))
+    (setq info (plist-put info :html-head-extra hhe))
+    (org-html-template contents info)))
+
+(add-to-list
+ 'mm.rs/org-html-translate-template-alist
+ '(mm.rs/org-element-index-template-p . mm.rs/org-html-index-template))
+#+end_src
+
+** ~index-style-tag.html~
+
+#+begin_src css :tangle index-style-tag.html
+<style>
+nav.nav-scroll {
+    position: relative;
+    z-index: 2;
+    height: 2rem;
+    box-sizing: border-box;
+    overflow-y: hidden;
+    padding: 1rem;
+    border-top: 1px solid rgba(0,0,0,0.075);
+    line-height: 1em;
+}
+nav.nav-scroll > ul {
+    overflow-x: auto;
+    text-align: center;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 1rem;
+}
+nav.nav-scroll > ul > li > a {
+    font-weight: 500;
+}
+.news-slide > li > .uk-card {
+    box-shadow: none;
+    border:  1px solid rgba(0,0,0,0.075);
+}
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+}
+.uk-logo > img {
+    height: 58px;
+}
+#header.uk-sticky-below {
+    box-shadow: 0 2px 14px 0 rgba(0,0,0,0.07);
+}
+</style>
+#+end_src
+
+* Export
+
+#+begin_src emacs-lisp :tangle index.el
+;;; This file, when loaded, hopefully exports the website to ../html/
+
+(load "utils")
+(load "export")
+
+
+
+#+end_src

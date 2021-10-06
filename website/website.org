@@ -1,0 +1,909 @@
+#+TITLE: Website, published from org-mode!
+#+CATEGORY: Publish
+#+DATE: [2021-09-15 Wed]
+#+DESCRIPTION: The Music-Make.rs website in org mode.
+
+#+ATTR_ORG: :width 480px
+[[../../img/Piano1.jpg]]
+
+With my desire to become a professional music maker again in full swing a
+website is a good idea. Since I love [[https://orgmode.org/][org-mode]], here it goes.
+
+We are the music-make.rs, and we are the dreamers of the dreams.
+
+* Introduction
+
+There are many different ways to publish from org. My desire is one that does
+not rely on many external aspects.
+
+This seems like a good start: https://www.taingram.org/blog/org-mode-blog.html
+
+Let's see how it goes.
+
+* Layout
+
+We'll try the structure from our good start with a few changes.
+
+- ~./music-make.rs/~
+  - ~org/~ # content to be exported
+    - ~blog/~
+      - ~website.org~
+    - ~img/~
+    - ~index.org~
+    - ~robots.txt~
+    - ~style.css~
+  - ~html/~            # temporary export directory
+  - ~publish.el~       # site sepecifc publishing config
+  - ~Makefile~         # for building the site outside of Emacs
+
+
+Here's the ~alist~ that configures everything we need.
+
+#+begin_src emacs-lisp
+;;  Org provides ox-publish specifically for publishing Org projects as
+;;  websites.
+(require 'ox-publish)
+
+
+(setq org-publish-project-alist
+      `(("pages"
+         :base-directory "~/me/music-make.rs/org/"
+         :base-extension "org"
+         :recursive t
+         :publishing-directory "~/me/music-make.rs/html/"
+         :publishing-function org-html-publish-to-html)
+
+        ("static"
+         :base-directory "~/me/music-make.rs/org/"
+         :base-extension "css\\|txt\\|jpg\\|gif\\|png"
+         :recursive t
+         :publishing-directory  "~/me/music-make.rs/html/"
+         :publishing-function org-publish-attachment)
+
+        ("music-make.rs" :components ("pages" "static"))))
+
+#+end_src
+
+Accorrding to the [[https://orgmode.org/worg/org-tutorials/org-publish-html-tutorial.html][tutorial]] the following options should always be set:
+
+  - :base-directory :: where the source files are
+  - :base-extension :: what type of file (e.g. org) is being exported
+  - :publishing-directory  :: where the exported files are going
+  - :publishing-function :: how the files are exported. Some options are:
+    - org-html-publish-to-html :: converts org files to HTML
+    - org-publish-attachment :: copies the files verbatim
+
+
+* ~index.org~, let's get started
+
+https://github.com/zzseba78/Kick-Off UIKIT v3
+
+So we need an index to start off our site.
+
+I've decided to use [[https://getuikit.com/docs/installation][UIKit]] because some googling made me feel that vibe.
+
+#+begin_src html :noweb-ref html-preamble :tangle "uikit.html"
+<!-- UIkit CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.7.3/dist/css/uikit.min.css" />
+
+<!-- UIkit JS -->
+<script src="https://cdn.jsdelivr.net/npm/uikit@3.7.3/dist/js/uikit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/uikit@3.7.3/dist/js/uikit-icons.min.js"></script>
+#+end_src
+
+So a tiny ~index.html~. First, the export options template gives us the various
+options with their "default" values by hitting ~C-c C-e # default~ and the "html" with ~C-c C-e # html~
+
+#+begin_src org :noweb-ref default-options
+,#+options: ':t *:t -:t ::t <:t H:3 \n:nil ^:t arch:headline author:t
+,#+options: broken-links:nil c:nil creator:nil d:(not "LOGBOOK") date:t e:t
+,#+options: email:nil f:t inline:t num:t p:nil pri:nil prop:nil stat:t tags:t
+,#+options: tasks:t tex:t timestamp:t title:t toc:t todo:t |:t
+,#+title: *Org Src website.org[ org ]*
+,#+date: <2021-09-14 Tue>
+,#+author: Drew Crampsie
+,#+email: me@drewc.ca
+,#+language: en
+,#+select_tags: export
+,#+exclude_tags: noexport
+,#+creator: Emacs 27.2 (Org mode 9.5)
+
+,#+options: html-link-use-abs-url:nil html-postamble:auto html-preamble:t
+,#+options: html-scripts:t html-style:t html5-fancy:nil tex:t
+,#+html_doctype: html5
+,#+html_container: div
+,#+description:
+,#+keywords:
+,#+html_link_home:
+,#+html_link_up:
+,#+html_mathjax:
+,#+html_equation_reference_format: \eqref{%s}
+,#+html_head:
+,#+html_head_extra:
+,#+subtitle:
+,#+infojs_opt:
+,#+creator: <a href="https://www.gnu.org/software/emacs/">Emacs</a> 27.2 (<a href="https://orgmode.org">Org</a> mode 9.5)
+,#+latex_header:
+
+#+end_src
+
+#+begin_src org :tangle "./org/qindex.org" :noweb yes :mkdirp t
+,#+TITLE: Music Makers
+
+
+,#+options: html-link-use-abs-url:nil html-postamble:auto html-preamble:nil
+,#+options: html-scripts:nil html-style:nil html5-fancy:nil tex:t
+,#+html_doctype: html5
+
+,#+html_head: <<html-preamble>>
+
+We are the music-make.rs, and we are the dreamers of the dreams.
+#+end_src
+
+And to test publish, ~C-c C-e P x music-make.rs~. That should hopefully place
+the site in ~./html/~.
+
+Even better is running this.
+
+#+begin_src emacs-lisp
+(org-publish "music-make.rs" t)
+#+end_src
+
+#+RESULTS:
+
+The ~t~ makes it always export even if the files are non changed. This helps
+when creating and editing things.
+
+Python has a built in webserver that works great for testing.
+
+#+begin_src shell
+cd ~/me/music-make.rs/html/ ; python3 -m http.server ; cd -
+#+end_src
+
+That works great! I ended up with this html.
+
+#+begin_src html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2021-09-14 Tue 16:18 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Music Makers</title>
+<meta name="author" content="Drew Crampsie" />
+<meta name="generator" content="Org Mode" />
+<!-- UIkit CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.7.3/dist/css/uikit.min.css" />
+
+<!-- UIkit JS -->
+<script src="https://cdn.jsdelivr.net/npm/uikit@3.7.3/dist/js/uikit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/uikit@3.7.3/dist/js/uikit-icons.min.js"></script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">Music Makers</h1>
+<p>
+We are the music-make.rs, and we are the dreamers of the dreams.
+</p>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Drew Crampsie</p>
+<p class="date">Created: 2021-09-14 Tue 16:18</p>
+</div>
+</body>
+</html>
+#+end_src
+
+* The actual home page! ~index.org~ again.
+
+A number of things can be made easier. For example for certain config values
+don't want to need them every file.
+
+ie:
+
+#+begin_src org :noweb export
+,#+options: html-link-use-abs-url:nil html-postamble:auto html-preamble:nil
+,#+options: html-scripts:nil html-style:nil html5-fancy:nil title:nil
+,#+html_doctype: html5
+,#+html_head: <<html-preamble>>
+#+end_src
+
+As luck would have it there are [[https://orgmode.org/manual/Publishing-options.html#Publishing-options][Publishing Options]].
+
+First, for the ~:html-head~ it can be a function.
+
+#+begin_src emacs-lisp
+(require 'f)
+(defvar mm.rs/root "~/me/music-make.rs")
+
+(defun mm.rs/path-expand (p)
+  (concat mm.rs/root p))
+
+(defun mm.rs/html-head ()
+  (f-read-text (mm.rs/path-expand "/uikit.html") 'utf-8))
+#+end_src
+
+
+#+begin_src emacs-lisp
+;;  Org provides ox-publish specifically for publishing Org projects as
+;;  websites.
+(require 'ox-publish)
+
+(setq org-publish-project-alist
+      `(("pages"
+         :base-directory "~/me/music-make.rs/org/"
+         :base-extension "org"
+         :recursive t
+         :publishing-directory "~/me/music-make.rs/html/"
+         :publishing-function org-html-publish-to-html
+         :html-doctype "html5"
+         :html-head-include-default-style nil
+         :html-head-include-scripts nil
+         :with-title nil
+         :with-toc nil
+         :html-head ,(mm.rs/html-head))
+
+        ("static"
+         :base-directory "~/me/music-make.rs/org/"
+         :base-extension "css\\|txt\\|jpg\\|gif\\|png"
+         :recursive t
+         :publishing-directory  "~/me/music-make.rs/html/"
+         :publishing-function org-publish-attachment)
+
+        ("music-make.rs" :components ("pages" "static"))))
+
+#+end_src
+
+** Blog template
+
+#+begin_src css :noweb-ref blog-style
+<style>
+nav.nav-scroll {
+    position: relative;
+    z-index: 2;
+    height: 2rem;
+    box-sizing: border-box;
+    overflow-y: hidden;
+    padding: 1rem;
+    border-top: 1px solid rgba(0,0,0,0.075);
+    line-height: 1em;
+}
+nav.nav-scroll > ul {
+    overflow-x: auto;
+    text-align: center;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 1rem;
+}
+nav.nav-scroll > ul > li > a {
+    font-weight: 500;
+}
+.news-slide > li > .uk-card {
+    box-shadow: none;
+    border:  1px solid rgba(0,0,0,0.075);
+}
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+}
+.uk-logo > img {
+    height: 58px;
+}
+#header.uk-sticky-below {
+    box-shadow: 0 2px 14px 0 rgba(0,0,0,0.07);
+}
+</style>
+#+end_src
+
+**  Header
+
+
+#+begin_src html :noweb-ref header
+<!--HEADER-->
+<header id="header" style="background-color: #fff;" data-uk-sticky="show-on-up: true; animation: uk-animation-fade; media: @l">
+  <div class="uk-container">
+	<nav id="navbar" data-uk-navbar="mode: click;">
+	  <div class="uk-navbar-left nav-overlay uk-visible@m">
+		<ul class="uk-navbar-nav">
+		  <li>
+			<a href="#" title="Subscribe">Subscribe</a>
+		  </li>
+		  <li>
+			<a href="#" title="Sign Up">Sign Up</a>
+		  </li>
+		</ul>
+	  </div>
+	  <div class="uk-navbar-center nav-overlay">
+		<a class="uk-navbar-item uk-logo" href="#" title="Music-Make.rs">
+          <img src="/img/music.png" alt="Logo"></a>
+	  </div>
+	  <div class="uk-navbar-right nav-overlay">
+		<a class="uk-navbar-toggle uk-visible@m" data-uk-search-icon data-uk-toggle="target: .nav-overlay; animation: uk-animation-fade" href="#"></a>
+		<div class="uk-navbar-item">
+		  <a class="uk-visible@s" style="margin-right: 4px" href="#" data-uk-icon="facebook"></a>
+		  <a class="uk-visible@s" style="margin-right: 4px" href="#" data-uk-icon="twitter"></a>
+		  <a class="uk-visible@s" style="margin-right: 4px" href="#" data-uk-icon="instagram"></a>
+		  <a class="uk-navbar-toggle uk-hidden@m" data-uk-toggle data-uk-navbar-toggle-icon href="#offcanvas-nav"></a>
+		</div>
+
+	  </div>
+	  <div class="nav-overlay uk-navbar-left uk-flex-1" hidden>
+		<div class="uk-navbar-item uk-width-expand">
+		  <form class="uk-search uk-search-navbar uk-width-1-1">
+			<input class="uk-search-input" type="search" placeholder="Search...">
+		  </form>
+		</div>
+		<a class="uk-navbar-toggle" data-uk-close data-uk-toggle="target: .nav-overlay; animation: uk-animation-fade" href="#"></a>
+	  </div>
+	</nav>
+  </div>
+</header>
+<!--/HEADER-->
+#+end_src
+
+#+begin_src emacs-lisp
+(org-publish "music-make.rs" t)
+#+end_src
+#+begin_src org :tangle "../../org/index.org" :noweb yes :mkdirp t
+,#+TITLE: Music Makers
+<<export>>
+
+,#+html_head_extra: <<blog-style>>
+
+,#+begin_export html
+<<header>>
+<<navigation>>
+<<hero>>
+<<featured>>
+,#+end_export
+
+Block gere
+<<featured-block>>
+
+asd sdf
+
+We are the music-make.rs, and we are the dreamers of the dreams.
+#+end_src
+
+** Navigation
+
+#+begin_src html :noweb-ref navigation
+<!-- NAVIGATION -->
+<div class="uk-container">
+  <nav class="nav-scroll">
+	<ul class="uk-subnav uk-flex uk-flex-between uk-flex-nowrap">
+	  <li class="uk-active"><a href="#">Home</a></li>
+	  <li><a href="#">Making</a></li>
+	  <li><a href="#">Technology</a></li>
+	  <li><a href="#">Business</a></li>
+	  <li><a href="#">Social Media</a></li>
+	  <li><a href="#">Busk</a></li>
+	  <li><a href="#">Community</a></li>
+	</ul>
+  </nav>
+</div>
+<!-- /NAVIGATION -->
+
+#+end_src
+
+** Hero
+
+Picsum is a good place for images!
+
+https://i.picsum.photos/id/145/4288/2848.jpg
+
+
+
+#+begin_src html :noweb-ref hero
+<!-- HERO -->
+<section class="uk-section uk-section-small">
+  <div class="uk-container">
+	<div class="uk-height-large uk-cover-container uk-border-rounded">
+	  <img src="/img/Guitar1.jpg" alt="Alt img" data-uk-cover>
+	  <div class="uk-overlay uk-overlay-primary uk-position-cover uk-flex uk-flex-center uk-flex-middle uk-light uk-text-center">
+		<div data-uk-scrollspy="cls: uk-animation-slide-bottom-small">
+		  <!-- <span style="letter-spacing: 0.2em; font-size: 0.725rem">FEATURED ARTICLE</span> -->
+		  <h1 class="uk-margin-top uk-margin-small-bottom uk-margin-remove-adjacent">We are the Music Makers</h1>
+		  <p>...and we are the dreamers of the dreams</p>
+		  <a href="#" class="uk-button uk-button-default uk-margin-top">GO TO ARTICLE</a>
+		</div>
+	  </div>
+
+	</div>
+  </div>
+</section>
+
+<!-- HERO -->
+#+end_src
+
+**  Featured
+
+This is where I get into ~org~ and ~emacs~.
+
+This is a [[https://getuikit.com/docs/slider][slider]] list that has many of the same components.
+
+An item has 5 components. We can get all the values from a file.
+
+ - Title :: We use the ~#+TITLE:~ keyword
+ - Date :: The ~#+DATE:~ option
+ - Image :: The first inline image
+ - Category :: ~#+CATEGORY:~
+ - Synopsis :: the paragraphs before the first heading.
+
+   Wouldn't it be nice to create it from org syntax?
+
+   #+begin_src org :noweb-ref featured-block
+,* Featured :mmrs:featured:
+
+  - [[file:blog/website.org]]
+  - [[file:blog/backstory.org]]
+
+   #+end_src
+
+#+begin_src emacs-lisp
+(org-publish "music-make.rs" t)
+#+end_src
+
+https://orgmode.org/worg/dev/org-export-reference.html
+
+#+begin_src emacs-lisp
+
+(defvar mm.rs/featured-start "<!-- FEATURED -->
+<div class=\"uk-container\">
+  <h4 class=\"uk-heading-line uk-text-bold\"><span>Featured</span></h4>
+  <div data-uk-slider=\"velocity: 5\">
+	<div class=\"uk-position-relative\">
+	  <div class=\"uk-slider-container\">
+		<ul class=\"uk-slider-items uk-child-width-1-2@m uk-grid uk-grid-medium news-slide\">
+")
+(defvar mm.rs/featured-item-format-string
+"		  <li>
+			<div class=\"uk-card uk-card-default uk-card-body uk-card-small uk-flex uk-flex-middle uk-card-default uk-border-rounded\">
+			  <div class=\"uk-grid uk-grid-medium uk-flex uk-flex-middle\" data-uk-grid>
+				<div class=\"uk-width-1-3@s uk-width-2-5@m uk-height-1-1\">
+                                  %s
+				</div>
+				<div class=\"uk-width-2-3@s uk-width-3-5@m\">
+				  <span class=\"uk-label uk-label-warning\" style=\"font-size: 0.75rem\">%s</span>
+				  <h3 class=\"uk-card-title uk-margin-small-top uk-margin-remove-bottom\">
+					<a class=\"uk-link-reset\" href=\"%s\">%s</a>
+				  </h3>
+				  <span class=\"uk-article-meta\">Published %s</span>
+				  <p class=\"uk-margin-small\">%s</p>
+				</div>
+			  </div>
+			</div>
+		  </li>
+")
+(defvar mm.rs/featured-end
+"		</ul>
+	  </div>
+	  <div class=\"uk-hidden@l uk-light\">
+		<a class=\"uk-position-center-left uk-position-small\" href=\"#\" data-uk-slidenav-previous data-uk-slider-item=\"previous\"></a>
+		<a class=\"uk-position-center-right uk-position-small\" href=\"#\" data-uk-slidenav-next data-uk-slider-item=\"next\"></a>
+	  </div>
+	  <div class=\"uk-visible@l\">
+		<a class=\"uk-position-center-left-out uk-position-small\" href=\"#\" data-uk-slidenav-previous data-uk-slider-item=\"previous\"></a>
+		<a class=\"uk-position-center-right-out uk-position-small\" href=\"#\" data-uk-slidenav-next data-uk-slider-item=\"next\"></a>
+	  </div>
+	</div>
+	<ul class=\"uk-slider-nav uk-dotnav uk-flex-center uk-margin\"><li></li></ul>
+  </div>
+</div>
+<!-- /FEATURED -->
+")
+
+(defun mm.rs/org-html-featured-item (url title date tag contents image-url)
+  (format mm.rs/featured-item-format-string
+          image-url tag url title date contents))
+
+(defun mm.rs/org-html-abstract (doc)
+  "The paragraphs before the first heading"
+  (let ((info (org-export--get-buffer-attributes)))
+    (apply 'concat
+           (remove nil
+            (org-element-map
+               doc 'section
+              (lambda (sec)
+                (org-element-map
+                    sec 'paragraph
+                  (lambda (p)
+                    (unless (org-html-standalone-image-p p info)
+                      (org-export-data-with-backend p 'html nil )))))
+              nil t)))))
+
+(defun mm.rs/org-standalone-image-p (p &optional info)
+  (org-html-standalone-image-p p info))
+
+(defun mm.rs/org-html-featured-item-image-paragraph(doc)
+  (car
+   (org-element-map
+       doc 'section
+     (lambda (sec)
+       (org-element-map
+           sec 'paragraph
+         (lambda (p) (when (org-html-standalone-image-p p nil)
+                       p)))) nil t)))
+
+(cl-defun mm.rs/org-html-image (element &optional (info '(:html-doctype "html")))
+  (let* ((link (if (eql (org-element-type element) 'link) element
+                 (org-element-map element 'link #'identity nil t)))
+         (p (if (eql (org-element-type element) 'paragraph) element
+              (org-element-property :parent link))))
+    (org-html--format-image
+     (org-element-property :path link)
+     (org-export-read-attribute :attr_html p)
+     info)))
+
+(defun mm.rs/org-html-featured-item-image-path<-doc (doc)
+   (org-element-property :path(car  (org-element-map
+           doc 'section
+           (lambda (sec)
+             (org-element-map
+                 sec 'paragraph
+               (lambda (p) (when (org-html-standalone-image-p p nil)
+                             (car (org-element-contents p)))))) nil t))))
+
+(defun mm.rs/org-html-featured-item<-file (path info)
+  (let ((buff (find-file-noselect path)))
+    (with-current-buffer buff
+      (let* ((title (org-export-data
+                    (plist-get (org-export--get-inbuffer-options) :title) info))
+            (doc (current-org-buffer))
+            (contents (mm.rs/org-html-abstract doc))
+            (img (mm.rs/org-html-image
+                  (mm.rs/org-html-featured-item-image-element doc)))
+            (img-path (mm.rs/org-html-featured-item-image-path<-doc doc))
+            (url (concat (file-name-sans-extension path) ".html")))
+        (format "<li> OK %s %s %s %s</li>" title url contents img-path)
+        (format mm.rs/featured-item-format-string
+          img "TAG" url title "Sept 11 2001" contents)))))
+
+
+(org-publish "music-make.rs" t)
+(defun s> (thing) (with-output-to-string (princ thing)))
+
+(defun mm.rs/org-html-headline (headline contents info)
+  (let ((tags (org-export-get-tags headline info)))
+    (if  (and (member "mmrs" tags)
+              (member "featured" tags))
+        (let ((featured-files (org-element-map (org-element-contents headline)
+                                  'link (lambda (link) (org-element-property :path link)) info)))
+          (apply #'concat (list
+                           mm.rs/featured-start
+                           (apply #'concat (mapcar (lambda (f) (mm.rs/org-html-featured-item<-file f info)) featured-files))
+                            (format "<li> %s content: %s info: %s</li>" 'asdcstart 'cend (identity featured-files
+                                                                                          ))
+                            (mm.rs/org-html-featured-item<-file "blog/backstory.org" info)
+                            (mm.rs/org-html-featured-item
+                             "/blog/backstory.org"
+                             "Backstory: Why Music-Make.rs came to be"
+                             "Sept 15 2021"
+                             "music-make.rs"
+                             "Lorum ipsum si dollae admirt"
+                             "/img/Piano1.jpg")
+                            "<li>  Item </li>"
+                            mm.rs/featured-item-format-string mm.rs/featured-item-format-string mm.rs/featured-end)))
+      (org-html-headline headline contents info))))
+
+
+
+
+
+(defun mm.rs/publish-to-html (plist filename pub-dir)
+  "Publish an org file to HTML.
+
+FILENAME is the filename of the Org file to be published.  PLIST
+is the property list for the given project.  PUB-DIR is the
+publishing directory.
+
+Return output file name."
+  (org-publish-org-to 'mm.rs/exporta filename
+		      (concat (when (> (length org-html-extension) 0) ".")
+			      (or (plist-get plist :html-extension)
+				  org-html-extension
+				  "html"))
+		      plist pub-dir))
+
+#+end_src
+
+#+begin_src emacs-lisp
+;;  Org provides ox-publish specifically for publishing Org projects as
+;;  websites.
+(require 'ox-publish)
+
+(setq org-publish-project-alist
+      `(("pages"
+         :base-directory "~/me/music-make.rs/org/"
+         :base-extension "org"
+         :recursive t
+         :publishing-directory "~/me/music-make.rs/html/"
+         :publishing-function mm.rs/publish-to-html
+         :html-doctype "html5"
+         :html-head-include-default-style nil
+         :html-head-include-scripts nil
+         :with-title nil
+         :with-toc nil
+         :html-head ,(mm.rs/html-head))
+
+        ("static"
+         :base-directory "~/me/music-make.rs/org/"
+         :base-extension "css\\|txt\\|jpg\\|gif\\|png"
+         :recursive t
+         :publishing-directory  "~/me/music-make.rs/html/"
+         :publishing-function org-publish-attachment)
+
+        ("music-make.rs" :components ("pages" "static"))))
+
+#+end_src
+
+First, make some files for start and end and item.
+
+#+begin_src html :noweb-ref featured-start :tangle featured-start.html
+<!-- FEATURED -->
+<div class="uk-container">
+  <h4 class="uk-heading-line uk-text-bold"><span>Featured</span></h4>
+  <div data-uk-slider="velocity: 5">
+	<div class="uk-position-relative">
+	  <div class="uk-slider-container">
+		<ul class="uk-slider-items uk-child-width-1-2@m uk-grid uk-grid-medium news-slide">
+#+end_src
+#+begin_src html :noweb-ref featured-item-format-string :tangle featured-item-format.html
+		  <li>
+			<div class="uk-card uk-card-default uk-card-body uk-card-small uk-flex uk-flex-middle uk-card-default uk-border-rounded">
+			  <div class="uk-grid uk-grid-medium uk-flex uk-flex-middle" data-uk-grid>
+				<div class="uk-width-1-3@s uk-width-2-5@m uk-height-1-1">
+				  <img src="%s" alt="">
+				</div>
+				<div class="uk-width-2-3@s uk-width-3-5@m">
+				  <span class="uk-label uk-label-warning" style="font-size: 0.75rem">%s</span>
+				  <h3 class="uk-card-title uk-margin-small-top uk-margin-remove-bottom">
+					<a class="uk-link-reset" href="%s">%s</a>
+				  </h3>
+				  <span class="uk-article-meta">Published %s</span>
+				  <p class="uk-margin-small">%s</p>
+				</div>
+			  </div>
+			</div>
+		  </li>
+#+end_src
+#+begin_src html :noweb-ref featured-end :tangle featured-end.html
+		</ul>
+	  </div>
+	  <div class="uk-hidden@l uk-light">
+		<a class="uk-position-center-left uk-position-small" href="#" data-uk-slidenav-previous data-uk-slider-item="previous"></a>
+		<a class="uk-position-center-right uk-position-small" href="#" data-uk-slidenav-next data-uk-slider-item="next"></a>
+	  </div>
+	  <div class="uk-visible@l">
+		<a class="uk-position-center-left-out uk-position-small" href="#" data-uk-slidenav-previous data-uk-slider-item="previous"></a>
+		<a class="uk-position-center-right-out uk-position-small" href="#" data-uk-slidenav-next data-uk-slider-item="next"></a>
+	  </div>
+	</div>
+	<ul class="uk-slider-nav uk-dotnav uk-flex-center uk-margin"><li></li></ul>
+  </div>
+</div>
+<!-- /FEATURED -->
+#+end_src
+
+
+#+begin_src html :noweb-ref featured
+<!-- FEATURED -->
+<div class="uk-container">
+  <h4 class="uk-heading-line uk-text-bold"><span>Featured</span></h4>
+  <div data-uk-slider="velocity: 5">
+	<div class="uk-position-relative">
+	  <div class="uk-slider-container">
+		<ul class="uk-slider-items uk-child-width-1-2@m uk-grid uk-grid-medium news-slide">
+		  <li>
+			<div class="uk-card uk-card-default uk-card-body uk-card-small uk-flex uk-flex-middle uk-card-default uk-border-rounded">
+			  <div class="uk-grid uk-grid-medium uk-flex uk-flex-middle" data-uk-grid>
+				<div class="uk-width-1-3@s uk-width-2-5@m uk-height-1-1">
+				  <img src="/img/Piano1.jpg" alt="">
+				</div>
+				<div class="uk-width-2-3@s uk-width-3-5@m">
+				  <span class="uk-label uk-label-warning" style="font-size: 0.75rem">Trends</span>
+				  <h3 class="uk-card-title uk-margin-small-top uk-margin-remove-bottom">
+					<a class="uk-link-reset" href="#">Short Blog Title</a>
+				  </h3>
+				  <span class="uk-article-meta">Published 12th August 2019</span>
+				  <p class="uk-margin-small">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do...</p>
+				</div>
+			  </div>
+			</div>
+		  </li>
+		  <li>
+			<div class="uk-card uk-card-default uk-card-body uk-card-small uk-flex uk-flex-middle uk-card-default uk-border-rounded">
+			  <div class="uk-grid uk-grid-medium uk-flex uk-flex-middle" data-uk-grid>
+				<div class="uk-width-1-3@s uk-width-2-5@m uk-height-1-1">
+				  <img src="https://picsum.photos/500/500/?random=2" alt="">
+				</div>
+				<div class="uk-width-2-3@s uk-width-3-5@m">
+				  <span class="uk-label uk-label-warning" style="font-size: 0.75rem">Trends</span>
+				  <h3 class="uk-card-title uk-margin-small-top uk-margin-remove-bottom">
+					<a class="uk-link-reset" href="#">Short Blog Title</a>
+				  </h3>
+				  <span class="uk-article-meta">Published 12th August 2019</span>
+				  <p class="uk-margin-small">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do...</p>
+				</div>
+			  </div>
+			</div>
+		  </li>
+		  <li>
+			<div class="uk-card uk-card-default uk-card-body uk-card-small uk-flex uk-flex-middle uk-card-default uk-border-rounded">
+			  <div class="uk-grid uk-grid-medium uk-flex uk-flex-middle" data-uk-grid>
+				<div class="uk-width-1-3@s uk-width-2-5@m uk-height-1-1">
+				  <img src="https://picsum.photos/500/500/?random=3" alt="">
+				</div>
+				<div class="uk-width-2-3@s uk-width-3-5@m">
+				  <span class="uk-label uk-label-warning" style="font-size: 0.75rem">Trends</span>
+				  <h3 class="uk-card-title uk-margin-small-top uk-margin-remove-bottom">
+					<a class="uk-link-reset" href="#">Short Blog Title</a>
+				  </h3>
+				  <span class="uk-article-meta">Published 12th August 2019</span>
+				  <p class="uk-margin-small">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do...</p>
+				</div>
+			  </div>
+			</div>
+		  </li>
+		  <li>
+			<div class="uk-card uk-card-default uk-card-body uk-card-small uk-flex uk-flex-middle uk-card-default uk-border-rounded">
+			  <div class="uk-grid uk-grid-medium uk-flex uk-flex-middle" data-uk-grid>
+				<div class="uk-width-1-3@s uk-width-2-5@m uk-height-1-1">
+				  <img src="https://picsum.photos/500/500/?random=4" alt="">
+				</div>
+				<div class="uk-width-2-3@s uk-width-3-5@m">
+				  <span class="uk-label uk-label-warning" style="font-size: 0.75rem">Trends</span>
+				  <h3 class="uk-card-title uk-margin-small-top uk-margin-remove-bottom">
+					<a class="uk-link-reset" href="#">Short Blog Title</a>
+				  </h3>
+				  <span class="uk-article-meta">Published 12th August 2019</span>
+				  <p class="uk-margin-small">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do...</p>
+				</div>
+			  </div>
+			</div>
+		  </li>
+		</ul>
+	  </div>
+	  <div class="uk-hidden@l uk-light">
+		<a class="uk-position-center-left uk-position-small" href="#" data-uk-slidenav-previous data-uk-slider-item="previous"></a>
+		<a class="uk-position-center-right uk-position-small" href="#" data-uk-slidenav-next data-uk-slider-item="next"></a>
+	  </div>
+	  <div class="uk-visible@l">
+		<a class="uk-position-center-left-out uk-position-small" href="#" data-uk-slidenav-previous data-uk-slider-item="previous"></a>
+		<a class="uk-position-center-right-out uk-position-small" href="#" data-uk-slidenav-next data-uk-slider-item="next"></a>
+	  </div>
+	</div>
+	<ul class="uk-slider-nav uk-dotnav uk-flex-center uk-margin"><li></li></ul>
+  </div>
+</div>
+<!-- /FEATURED -->
+#+end_src
+
+We turn that all into an org element which in turn is an item in the slider.
+
+ #+begin_src emacs-lisp
+
+ #+end_src
+
+
+
+
+#+CATEGORY: emacs
+#+begin_src emacs-lisp
+(require 'ox-org)
+(defun mm.rs/listify (thing) (if (listp thing) thing (list thing)))
+(defun current-org-buffer (&rest granularity)
+  "Recursively parse the buffer and return structure.
+
+Optional argument GRANULARITY determines the depth of the
+recursion.  It can be set to the following symbols:
+
+headline          Only parse headlines.
+greater-element   Don't recurse into greater elements except
+		          headlines and sections.  Thus, elements
+		          parsed are the top-level ones.
+element           Parse everything but objects and plain text.
+object            Parse the complete buffer (default).
+"
+         (apply #'org-element-parse-buffer granularity))
+(defun mm.rs/org-keywords-alist ()
+  "parse the buffer and return an alist from lines like:
+
+,#+PROPERTY: value
+
+ => ((:property . value))
+
+If there's many of them they arg merged and listified
+
+,#+PROPERTY: value
+,#+PROPERTY: value2
+
+ => ((:property . value))
+"
+  (let (alist)
+  (org-element-map
+      (org-element-parse-buffer 'greater-element) 'keyword
+    (lambda (keyword)
+      (let* ((kw (intern (concat ":" (downcase (org-element-property :key keyword)))))
+             (prev-cons (assoc kw alist))
+             (prev-val (mm.rs/listify (cdr prev-cons)))
+             (val (org-element-property :value keyword))
+             (new-val (if prev-cons (cons val prev-val) val)))
+        (if prev-cons (setf (cdr prev-cons) new-val)
+          (push (cons kw new-val) alist)))))
+  (nreverse alist)))
+
+
+#+end_src
+
+
+https://orgmode.org/worg/dev/org-export-reference.html
+
+
+Because they are so similar there must be an easier way. [[https://orgmode.org/manual/Dynamic-Blocks.html][Dynamic Blocks]] to the rescue.
+
+Each "feature" org file has the following args.
+
+ - :label :: The keyword/section/genus of this feature.
+
+   #+begin_src emacs-lisp
+(pushnew! org-export-options-alist '(:label "LABEL" nil nil parse))
+   #+end_src
+
+   Try it out like this.
+   #+begin_src org
+#+LABEL: WTF!
+   #+end_src
+
+#+begin_src emacs-lisp
+(defun org-dblock-write:mm.rs/feature (params)
+  (let ((title (or (plist-get params :title) "Lorum Ipsum")))
+    (insert "Last block update at: " title)))
+
+(defun mm.rs/feature-block  (&optional arg)
+  "Update or create a table containing a report about clocked time.
+
+If point is inside an existing clocktable block, update it.
+Otherwise, insert a new one.
+
+The new table inherits its properties from the variable
+`org-clock-clocktable-default-properties'.  The scope of the
+clocktable, when not specified in the previous variable, is
+`subtree' when the function is called from within a subtree, and
+`file' elsewhere.
+
+When called with a prefix argument, move to the first clock table
+in the buffer and update it."
+
+  (interactive "P")
+     (org-create-dblock
+      (org-combine-plists
+       (list :scope (if (org-before-first-heading-p) 'file 'subtree))
+       org-clock-clocktable-default-properties
+       '(:name "mm.rs/feature")))
+  (org-update-dblock))
+(pushnew! org-dynamic-block-alist `("mm.rs/feature" . mm.rs/feature-block))
+#+end_src
+
+You can insert a dynamic block with ~org-dynamic-block-insert-dblock~, which is bound to ~C-c C-x x~ by default.
+
+#+BEGIN: mm.rs/feature :scope subtree :maxlevel 2
+Last block update at: Lorum Ipsum
+#+END:
+
+#+BEGIN: clocktable :scope subtree :maxlevel 2
+#+CAPTION: Clock summary at [2021-09-14 Tue 22:46]
+| Headline     | Time   |
+|--------------+--------|
+| *Total time* | *0:00* |
+#+END:
+
+#+BEGIN: clocktable :scope subtree :maxlevel 2
+#+CAPTION: Clock summary at [2021-09-14 Tue 22:55]
+| Headline     | Time   |
+|--------------+--------|
+| *Total time* | *0:00* |
+#+END:
+
+#+BEGIN: foo
+Last block update at: Lorum Ipsum
+#+END:

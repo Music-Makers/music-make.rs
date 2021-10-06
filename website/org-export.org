@@ -1,0 +1,315 @@
+#+TITLE: Org Export: The easy way to make a website from ~.org~ files
+
+* Global Variable Settings
+
+#+begin_src emacs-lisp :noweb-ref doctype
+(setq org-html-doctype "html5")
+(setq org-export-with-section-numbers nil)
+#+end_src
+
+* ~id=~ and ~org-id~
+
+#+begin_src emacs-lisp
+(require 'org-id)
+(setq org-id-link-to-org-use-id t)
+#+end_src
+
+* Backend in front
+
+This is here it all comes together.
+
+#+begin_src emacs-lisp :noweb-ref mmrs-backend
+(org-export-define-derived-backend
+    'mm.rs/html 'html
+  :translate-alist `((template . mm.rs/org-html-template)
+                     (section . mm.rs/org-html-section)
+                     (headline . mm.rs/org-html-headline))
+  :options-alist mm.rs/org-export-options-alist)
+
+(defun mm.rs/publish-to-html (plist filename pub-dir)
+  "Publish an org file to HTML.
+
+FILENAME is the filename of the Org file to be published.
+
+PLIST is the property list for the given project.
+
+PUB-DIR is the publishing directory.
+
+Return output file name."
+  (org-publish-org-to 'mm.rs/html filename
+		      (concat (when (> (length org-html-extension) 0) ".")
+			      (or (plist-get plist :html-extension)
+				  org-html-extension
+				  "html"))
+		      plist pub-dir))
+#+end_src
+
+* Select translater from alist
+
+For almost every item we want to select the translater/exporter function
+depending on certain things within that file.
+
+We do so via an alist so it can be added to either globally or dynamically.
+
+#+begin_src emacs-lisp
+(defun mm.rs/org-export-always-translate-p (el info) t)
+
+(defconst mm.rs/org-export-translater-alist
+  `((mm.rs/org-export-always-translate-p . org-export-data)))
+
+(cl-defun mm.rs/org-export-get-translater
+    (el info &optional (alist mm.rs/org-export-translater-alist))
+  (cl-destructuring-bind (pred . print-el) (car alist)
+    (if (funcall pred el info) print-el
+       (mm.rs/org-export-get-translater el info (cdr alist)))))
+#+end_src
+
+
+** Template
+
+#+begin_src emacs-lisp :noweb-ref mmrs-headline-printer
+(defconst mm.rs/org-html-translate-template-alist
+  `((mm.rs/org-export-always-translate-p . org-html-template)))
+
+(defun mm.rs/org-html-template (contents info)
+  (funcall (mm.rs/org-export-get-translater
+            contents info mm.rs/org-html-translate-template-alist)
+           contents info))
+#+end_src
+
+** Section
+
+#+begin_src emacs-lisp :noweb-ref mmrs-section-translater
+(defconst mm.rs/org-html-translate-section-alist
+  `((mm.rs/org-export-always-translate-p . org-html-section)))
+
+(defun mm.rs/org-html-section (section contents info)
+  (funcall (mm.rs/org-export-get-translater
+            section info mm.rs/org-html-translate-section-alist)
+           section contents info))
+#+end_src
+
+
+* Options
+
+We want to have our own ~#+PROPERTY:~'s and some ~:keyword~'s that match.
+
+
+#+begin_src emacs-lisp :noweb-ref mmrs-type
+(defconst mm.rs/org-mmrs-options '("article"))
+(defconst mm.rs/org-export-options-alist
+  '((:mmrs "MMRS" "mmrs" mm.rs/org-mmrs-options split)))
+#+end_src
+
+As luck would have it there's a simple way and some docs built in.
+
+#+begin_src emacs-lisp
+(describe-variable 'org-export-options-alist)
+#+end_src
+
+#+begin_example
+org-export-options-alist is a variable defined in ‘ox.el’.
+Its value is shown below.
+
+  This variable may be risky if used as a file-local variable.
+
+Documentation:
+Alist between export properties and ways to set them.
+
+The key of the alist is the property name, and the value is a list
+like (KEYWORD OPTION DEFAULT BEHAVIOR) where:
+
+KEYWORD is a string representing a buffer keyword, or nil.  Each
+  property defined this way can also be set, during subtree
+  export, through a headline property named after the keyword
+  with the "EXPORT_" prefix (i.e. DATE keyword and EXPORT_DATE
+  property).
+OPTION is a string that could be found in an #+OPTIONS: line.
+DEFAULT is the default value for the property.
+BEHAVIOR determines how Org should handle multiple keywords for
+  the same property.  It is a symbol among:
+  nil       Keep old value and discard the new one.
+  t         Replace old value with the new one.
+  ‘space’   Concatenate the values, separating them with a space.
+  ‘newline’ Concatenate the values, separating them with
+	    a newline.
+  ‘split’   Split values at white spaces, and cons them to the
+	    previous list.
+  ‘parse’   Parse value as a list of strings and Org objects,
+            which can then be transcoded with, e.g.,
+            ‘org-export-data’.  It implies ‘space’ behavior.
+
+Values set through KEYWORD and OPTION have precedence over
+DEFAULT.
+
+All these properties should be back-end agnostic.  Back-end
+specific properties are set through ‘org-export-define-backend’.
+Properties redefined there have precedence over these.
+
+Value:
+((:title "TITLE" nil nil parse)
+ (:date "DATE" nil nil parse)
+ (:author "AUTHOR" nil user-full-name parse)
+ (:email "EMAIL" nil user-mail-address t)
+ (:language "LANGUAGE" nil org-export-default-language t)
+ (:select-tags "SELECT_TAGS" nil org-export-select-tags split)
+ (:exclude-tags "EXCLUDE_TAGS" nil org-export-exclude-tags split)
+ (:creator "CREATOR" nil org-export-creator-string)
+ (:headline-levels nil "H" org-export-headline-levels)
+ (:preserve-breaks nil "\\n" org-export-preserve-breaks)
+ (:section-numbers nil "num" org-export-with-section-numbers)
+ (:time-stamp-file nil "timestamp" org-export-time-stamp-file)
+ (:with-archived-trees nil "arch" org-export-with-archived-trees)
+ (:with-author nil "author" org-export-with-author)
+ (:with-broken-links nil "broken-links" org-export-with-broken-links)
+ (:with-clocks nil "c" org-export-with-clocks)
+ (:with-creator nil "creator" org-export-with-creator)
+ (:with-date nil "date" org-export-with-date)
+ (:with-drawers nil "d" org-export-with-drawers)
+ (:with-email nil "email" org-export-with-email)
+ (:with-emphasize nil "*" org-export-with-emphasize)
+ (:with-entities nil "e" org-export-with-entities)
+ (:with-fixed-width nil ":" org-export-with-fixed-width)
+ (:with-footnotes nil "f" org-export-with-footnotes)
+ (:with-inlinetasks nil "inline" org-export-with-inlinetasks)
+ (:with-latex nil "tex" org-export-with-latex)
+ (:with-planning nil "p" org-export-with-planning)
+ (:with-priority nil "pri" org-export-with-priority)
+ (:with-properties nil "prop" org-export-with-properties)
+ (:with-smart-quotes nil "'" org-export-with-smart-quotes)
+ (:with-special-strings nil "-" org-export-with-special-strings)
+ (:with-statistics-cookies nil "stat" org-export-with-statistics-cookies)
+ (:with-sub-superscript nil "^" org-export-with-sub-superscripts)
+ (:with-toc nil "toc" org-export-with-toc)
+ (:with-tables nil "|" org-export-with-tables)
+ (:with-tags nil "tags" org-export-with-tags)
+ (:with-tasks nil "tasks" org-export-with-tasks)
+ (:with-timestamps nil "<" org-export-with-timestamps)
+ (:with-title nil "title" org-export-with-title)
+ (:with-todo-keywords nil "todo" org-export-with-todo-keywords))
+#+end_example
+
+* Export Root Direectory
+
+#+begin_src emacs-lisp :noweb-ref export-root
+(defconst mm.rs/export-root
+  (expand-file-name "../" (or (and load-file-name (file-name-directory load-file-name))
+                              default-directory)))
+
+
+(cl-defun mm.rs/expand-file-name (p &optional (root mm.rs/export-root))
+  (expand-file-name p root))
+#+end_src
+
+* Custom ~:html-head~ things
+:PROPERTIES:
+:ID:       6beff53d-0cac-489e-a0ac-7545ca7a3197
+:END:
+
+This is placed here so can be not placed elsewhere. Or: This is where this first
+became needed and should be variable
+
+#+begin_src html :noweb-ref html-preamble :tangle "uikit-head.html"
+<!-- UIkit CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.7.3/dist/css/uikit.min.css" />
+
+<!-- UIkit JS -->
+<script src="https://cdn.jsdelivr.net/npm/uikit@3.7.3/dist/js/uikit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/uikit@3.7.3/dist/js/uikit-icons.min.js"></script>
+#+end_src
+
+#+begin_src emacs-lisp :noweb-ref export-html-head
+(require 'f)
+
+(defun mm.rs/html-head ()
+  (f-read-text (mm.rs/expand-file-name "website/uikit-head.html") 'utf-8))
+#+end_src
+* Headline Printers
+
+Different files/repls/interactives can add different headline export functions.
+
+#+begin_src emacs-lisp :noweb-ref mmrs-headline-printer
+(defconst mm.rs/org-html-headline-alist
+  `((identity . org-html-headline)))
+
+(cl-defun mm.rs/org-html--get-headline-printer
+    (el &optional (halist mm.rs/org-html-headline-alist))
+  (let* ((cns (car halist))
+        (pred (car cns))
+        (fn (cdr cns))
+        (res (funcall pred el)))
+    (message "trying %s on headline? %s" pred res )
+    (if res
+        fn
+      (mm.rs/org-html--get-headline-printer el (cdr halist)))))
+
+(defun mm.rs/org-html-headline (headline contents info)
+  (funcall (mm.rs/org-html--get-headline-printer headline)
+           headline contents info))
+#+end_src
+
+
+* Export Backends and ~#+MMRS_TYPE:~
+
+Our export uses different backends depending on the value of the ~#+MMRS_TYPE:~
+keyword.
+
+We don't want to parse the entire file as org. We do need to open the buffer
+regardless.
+
+#+begin_src emacs-lisp
+(defun mm.rs/org-file-keyword (filename KEYWORD)
+  "get the value from a line like this
+,#+KEYWORD: value
+in a file."
+  (with-current-buffer (find-file-noselect filename)
+    (let ((case-fold-search t)
+          (re (format "^#\\+%s:[ \t]+\\([^\t\n]+\\)" KEYWORD)))
+      (if (not (save-excursion
+                 (or (re-search-forward re nil t)
+                     (re-search-backward re nil t))))
+          (error (format "No line containing #+%s: value found in %s" KEYWORD filename)))
+      (match-string 1))))
+
+(defun mm.rs/org-file-mm.rs-type (filename)
+  (or (ignore-errors (mm.rs/org-file-keyword filename "MMRS_TYPE"))
+      "document"))
+#+end_src
+
+Then we have an export type backend per export type backend.
+
+#+begin_src emacs-lisp
+(defvar mm.rs/org-html-export-backend-alist
+  '((document . mm.rs/html)
+    (article . mm.rs/article)))
+
+(defun mm.rs/org-file-html-export-type (filename)
+  (or (cdr (assoc (intern (mm.rs/org-file-mm.rs-type filename))
+                  mm.rs/org-html-export-backend-alist))
+      'mm.rs/html))
+#+end_src
+
+
+
+
+* /File/ ~export.el~
+:PROPERTIES:
+:ID:       19958514-9b94-4ad3-b2c7-fbd4e2abbfbb
+:END:
+
+#+begin_src emacs-lisp :tangle export.el :noweb yes
+<<doctype>>
+
+<<mmrs-type>>
+
+<<export-root>>
+
+<<export-html-head>>
+
+<<mmrs-headline-printer>>
+
+<<mmrs-backend>>
+
+<<mmrs-publish-alist>>
+
+#+end_src
